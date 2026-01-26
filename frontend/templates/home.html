@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='main.js') }}" defer></script>
+</head>
+<body>
+<h1>Welcome to the Home Page</h1>
+<p>This is the main content of the home page.</p>
+
+<!-- Flask route se redirect -->
+<a href="/build-resume">
+    <button>Build Resume</button>
+</a>
+
+</body>
+</html>

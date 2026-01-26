@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Resume Builder</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='main.js') }}" defer></script>
+</head>
+
+<body>
+
+<div class="main-container">
+
+  <!-- ================= LEFT PANEL ================= -->
+  <div class="left-panel">
+    <div class="container">
+      <div class="form-section">
+        <h1>ATS Resume Builder</h1>
+        <p class="subtitle">Build an ATS-friendly resume</p>
+
+        <form onsubmit="return false;">
+
+          <div class="form-group">
+            <label>Upload Existing Resume</label>
+            <input type="file" id="resumeUpload" accept=".pdf,.docx">
+          </div>
+
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="fullName">
+          </div>
+
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="email">
+          </div>
+
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="phone">
+          </div>
+
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="location">
+          </div>
+
+          <div class="form-group">
+            <label>LinkedIn</label>
+            <input type="text" id="linkedin">
+          </div>
+
+          <div class="section-header">
+            <h2>Summary</h2>
+          </div>
+          <textarea id="summary"></textarea>
+
+          <div class="section-header">
+            <h2>Skills</h2>
+          </div>
+          <textarea id="skills"></textarea>
+
+          <div class="section-header">
+            <h2>Projects</h2>
+          </div>
+          <textarea id="projects" placeholder="Your projects will appear here..."></textarea>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= RIGHT PANEL ================= -->
+  <!-- ================= RIGHT PANEL ================= -->
+<div class="right-panel">
+  <div class="maincontainer">
+
+    <div class="job-desc">
+      <h3>Job Description</h3>
+      <textarea id="jobDescription" placeholder="Paste job description here..."></textarea>
+    </div>
+
+    <button type="button" onclick="analyzeResume()">Analyze Resume</button>
+
+    <!-- ATS SCORE -->
+    <div class="ats-score">
+      <h3>ATS Match Score</h3>
+      <div class="score-circle">
+        <span id="score">--</span>%
+      </div>
+    </div>
+
+    <!-- BAR CHART -->
+    <canvas id="atsChart" height="200"></canvas>
+
+    <!-- SUGGESTIONS -->
+    <div class="suggestions">
+      <h3>Improvement Suggestions</h3>
+      <ul id="suggestions"></ul>
+    </div>
+   <div class="suggestions">
+  <h3>AI Suggestions (Section-wise)</h3>
+  <ul id="aiSuggestions"></ul>
+   </div>
+
+  </div>
+</div>
+
+<!-- ================= SMART ATS SCRIPT ================= -->
+<script>
+async function analyzeResume() {
+    const summary = document.getElementById("summary").value;
+    const skills = document.getElementById("skills").value;
+    const projects = document.getElementById("projects").value;
+    const jd = document.getElementById("jobDescription").value;
+
+    const fullResumeText = `
+SUMMARY:
+${summary}
+
+SKILLS:
+${skills}
+
+PROJECTS:
+${projects}
+`;
+
+    const res = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            resume: fullResumeText,
+            job_description: jd
+        })
+    });
+
+    const data = await res.json();
+
+    // ATS SCORE
+    document.getElementById("score").innerText = data.score ?? 0;
+
+    // SUGGESTIONS
+    const list = document.getElementById("suggestions");
+    list.innerHTML = "";
+
+    (data.missing_keywords || []).forEach(word => {
+        const li = document.createElement("li");
+        li.innerText = word;
+        list.appendChild(li);
+    });
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</body>
+</html>
