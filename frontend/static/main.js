@@ -42,27 +42,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-/* ================= SMART ATS + RADAR DASHBOARD ================= */
-
-let atsChart = null;
+/* ================= ANALYZE RESUME → PASS DATA TO NEW PAGE ================= */
 
 async function analyzeResume() {
-  const summary = document.getElementById("summary").value;
-  const skills = document.getElementById("skills").value;
-  const projects = document.getElementById("projects").value;
-  const jd = document.getElementById("jobDescription").value;
+  try {
+    const summary = document.getElementById("summary")?.value || "";
+    const skills = document.getElementById("skills")?.value || "";
+    const projects = document.getElementById("projects")?.value || "";
+    const jd = document.getElementById("jobDescription")?.value || "";
 
-  if (!summary && !skills && !projects) {
-    alert("Please upload resume first");
-    return;
-  }
+    if (!summary && !skills && !projects) {
+      alert("Please upload or fill resume first");
+      return;
+    }
 
-  if (!jd) {
-    alert("Please paste job description");
-    return;
-  }
+    if (!jd.trim()) {
+      alert("Please paste job description");
+      return;
+    }
 
-  const fullResumeText = `
+    // 🔹 Build full resume text
+    const fullResumeText = `
 SUMMARY:
 ${summary}
 
@@ -73,91 +73,29 @@ PROJECTS:
 ${projects}
 `;
 
-  try {
-    const res = await fetch("/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        resume: fullResumeText,
-        job_description: jd
-      })
-    });
+    // 🔹 Store data for next page
+    const payload = {
+      resume: fullResumeText,
+      job_description: jd
+    };
 
-    const data = await res.json();
-    console.log("ATS Result:", data);
+    sessionStorage.setItem("ats_payload", JSON.stringify(payload));
 
-    /* ===== SCORE ===== */
-    const scoreValue = data.overall_score ?? data.score ?? 0;
-    document.getElementById("score").innerText = scoreValue;
-
-    /* ===== KEYWORD SUGGESTIONS ===== */
-    const ul = document.getElementById("suggestions");
-    ul.innerHTML = "";
-    (data.missing_keywords || []).forEach(word => {
-      const li = document.createElement("li");
-      li.innerText = "Add keyword: " + word;
-      ul.appendChild(li);
-    });
-
-    /* ===== AI SECTION SUGGESTIONS ===== */
-    const list = document.getElementById('aiSuggestions');
-list.innerHTML = "";
-data.suggestions.forEach(s => {
-  const li = document.createElement('li');
-  li.textContent = s;
-  list.appendChild(li);
-});
-
-    /* ===== RADAR CHART ===== */
-    document.getElementById('atsScore').innerText = data.ats_score + "%";
-
-    if (data.breakdown) {
-      const ctx = document.getElementById("atsChart").getContext("2d");
-      if (atsChart) atsChart.destroy();
-
-      atsChart = new Chart(ctx, {
-        type: "radar",
-        data: {
-          labels: ["Skills", "Projects", "Education", "Keywords"],
-          datasets: [{
-            label: "ATS Match (%)",
-            data: [
-              data.breakdown.skills || 0,
-              data.breakdown.projects || 0,
-              data.breakdown.education || 0,
-              data.breakdown.keywords || 0
-            ],
-            fill: true,
-            backgroundColor: "rgba(108, 99, 255, 0.25)",
-            borderColor: "#6C63FF",
-            pointBackgroundColor: "#6C63FF"
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            r: {
-              min: 0,
-              max: 100,
-              ticks: { stepSize: 20 }
-            }
-          }
-        }
-      });
-    }
+    // 🔹 Redirect to result page
+    window.location.href = "/ats-result";
 
   } catch (err) {
-    console.error("ATS analysis error:", err);
-    alert("Failed to analyze ATS score");
+    console.error("Analyze redirect error:", err);
+    alert("Unable to proceed with ATS analysis");
   }
 }
 
-/* ================= FORM VALIDATION ================= */
+/* ================= FORM VALIDATION (OPTIONAL) ================= */
 
 function validateForm() {
-  const name = document.getElementById("fullName").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const skills = document.getElementById("skills").value.trim();
+  const name = document.getElementById("fullName")?.value.trim();
+  const email = document.getElementById("email")?.value.trim();
+  const skills = document.getElementById("skills")?.value.trim();
 
   if (!name || !email || !skills) {
     alert("Please fill all required fields");

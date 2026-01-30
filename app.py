@@ -5,7 +5,7 @@ import re
 import io
 import os
 
-# 🔥 SMART ATS (ML)
+# 🔥 SMART ATS (NLP)
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -24,6 +24,7 @@ def _ensure_protocol(url):
     if not url:
         return ""
     return url if url.lower().startswith(("http://", "https://")) else "https://" + url
+
 
 def extract_linkedin(text, lines, email):
     match = re.search(
@@ -56,6 +57,7 @@ def extract_linkedin(text, lines, email):
 
     return ""
 
+
 # ================= SMART ATS HELPERS =================
 SKILL_MAP = {
     "mysql": "sql",
@@ -69,28 +71,38 @@ SKILL_MAP = {
     "rest api": "api"
 }
 
+
 def normalize_text(text):
     text = text.lower()
     for k, v in SKILL_MAP.items():
         text = text.replace(k, v)
     return text
 
+
 STOPWORDS = {
-    "a","an","the","and","or","in","on","with","to","for","of","by","is","are","was","were",
-    "this","that","it","as","at","from","be","have","has","had","i","we","you","they","their"
+    "a", "an", "the", "and", "or", "in", "on", "with", "to", "for", "of", "by",
+    "is", "are", "was", "were", "this", "that", "it", "as", "at", "from",
+    "be", "have", "has", "had", "i", "we", "you", "they", "their"
 }
+
 
 def _tokens(s):
     return [w for w in re.findall(r"\w+", s.lower()) if w not in STOPWORDS]
+
 
 # ================= ROUTES =================
 @app.route("/")
 def home():
     return render_template("home.html")
 
+
 @app.route("/build-resume")
 def build_resume():
     return render_template("index.html")
+
+@app.route("/ats-result")
+def ats_result():
+    return render_template("atsanalysis.html")
 
 # ================= RESUME EXTRACTION =================
 @app.route("/extract_resume", methods=["POST"])
@@ -135,7 +147,9 @@ def extract_resume():
         lines = [l.strip() for l in text.split("\n") if l.strip()]
 
         # ---------- EMAIL ----------
-        email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)
+        email_match = re.search(
+            r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text
+        )
         email = email_match.group(0) if email_match else ""
 
         # ---------- PHONE ----------
@@ -152,30 +166,28 @@ def extract_resume():
                 location = line.split(":")[-1].strip()
                 break
 
-        # ---------- FULL NAME (ROBUST ATS LOGIC) ----------
+        # ---------- FULL NAME ----------
         full_name = ""
-
         bad_words = [
-            "intern","developer","engineer","company","solutions","pvt","ltd",
-            "web","software","career","objective","summary","profile",
-            "education","skills","experience","resume","artificial","intelligence","data","science"
+            "intern", "developer", "engineer", "company", "solutions", "pvt", "ltd",
+            "web", "software", "career", "objective", "summary", "profile",
+            "education", "skills", "experience", "resume",
+            "artificial", "intelligence", "data", "science"
         ]
 
         def is_valid_name(line):
             words = line.split()
             return (
-                2 <= len(words) <= 3 and
-                not any(bw in line.lower() for bw in bad_words) and
-                not any(char.isdigit() for char in line)
+                2 <= len(words) <= 3
+                and not any(bw in line.lower() for bw in bad_words)
+                and not any(char.isdigit() for char in line)
             )
 
-        # Priority 1: top of resume
         for line in lines[:5]:
             if is_valid_name(line):
                 full_name = line
                 break
 
-        # Priority 2: near email
         if not full_name and email:
             for i, line in enumerate(lines):
                 if email in line:
@@ -185,7 +197,6 @@ def extract_resume():
                             break
                     break
 
-        # Fallback
         if not full_name:
             for line in lines[:10]:
                 if is_valid_name(line):
@@ -203,8 +214,9 @@ def extract_resume():
                 continue
 
             if capture and any(x in l for x in [
-                "education","skills","experience","internship",
-                "certification","summary","objective"
+                "education", "skills", "experience",
+                "internship", "certification",
+                "summary", "objective"
             ]):
                 break
 
@@ -213,10 +225,12 @@ def extract_resume():
 
         # ---------- SKILLS ----------
         skills_list = [
-            "python","c","c++","java","flask","django",
-            "html","css","javascript","sql","mysql","react","node"
+            "python", "c", "c++", "java", "flask", "django",
+            "html", "css", "javascript", "sql", "mysql", "react", "node"
         ]
-        found_skills = [s for s in skills_list if re.search(rf"\b{s}\b", text.lower())]
+        found_skills = [
+            s for s in skills_list if re.search(rf"\b{s}\b", text.lower())
+        ]
 
         return jsonify({
             "full_name": full_name,
@@ -230,37 +244,56 @@ def extract_resume():
         })
 
     except Exception as e:
-        return jsonify({"error": "failed to parse resume", "details": str(e)}), 400
+        return jsonify(
+            {"error": "failed to parse resume", "details": str(e)},
+            400
+        )
+
 
 # ================= SMART ATS ANALYSIS =================
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.json or {}
-    resume = data.get("resume", "")
-    jd = data.get("job_description", "")
+
+    resume = data.get("resume") or data.get("resume_text", "")
+    jd = data.get("job_description") or data.get("jd_text", "")
 
     if not resume or not jd:
-        return jsonify({"score": 0, "missing_keywords": []})
+        return jsonify({
+            "overall_score": 0,
+            "breakdown": {
+                "skills": 0,
+                "projects": 0,
+                "education": 0,
+                "keywords": 0
+            },
+            "missing_keywords": []
+        })
 
     resume_n = normalize_text(resume)
     jd_n = normalize_text(jd)
 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    vectors = vectorizer.fit_transform([resume_n, jd_n])
-    similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
+    try:
+        vectorizer = TfidfVectorizer(stop_words="english")
+        vectors = vectorizer.fit_transform([resume_n, jd_n])
+        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
+    except ValueError:
+        similarity = 0
 
     score = round(similarity * 100, 2)
     missing = list(set(_tokens(jd_n)) - set(_tokens(resume_n)))[:8]
+
     return jsonify({
-    "overall_score": score,
-    "breakdown": {
-        "skills": round(score * 0.35, 2),
-        "projects": round(score * 0.30, 2),
-        "education": round(score * 0.15, 2),
-        "keywords": round(score * 0.20, 2)
-    },
-    "missing_keywords": missing
-})
+        "overall_score": score,
+        "breakdown": {
+            "skills": round(score * 0.35, 2),
+            "projects": round(score * 0.30, 2),
+            "education": round(score * 0.15, 2),
+            "keywords": round(score * 0.20, 2)
+        },
+        "missing_keywords": missing
+    })
+
 
 # ================= RUN =================
 if __name__ == "__main__":

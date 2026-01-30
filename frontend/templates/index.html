@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html pylang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -111,10 +111,21 @@
 <!-- ================= SMART ATS SCRIPT ================= -->
 <script>
 async function analyzeResume() {
+  try {
     const summary = document.getElementById("summary").value;
     const skills = document.getElementById("skills").value;
     const projects = document.getElementById("projects").value;
     const jd = document.getElementById("jobDescription").value;
+
+    if (!summary && !skills && !projects) {
+      alert("Please fill resume details first");
+      return;
+    }
+
+    if (!jd.trim()) {
+      alert("Please paste Job Description");
+      return;
+    }
 
     const fullResumeText = `
 SUMMARY:
@@ -128,30 +139,52 @@ ${projects}
 `;
 
     const res = await fetch("/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            resume: fullResumeText,
-            job_description: jd
-        })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resume: fullResumeText,
+        job_description: jd
+      })
     });
+
+    if (!res.ok) {
+      throw new Error("Server error");
+    }
 
     const data = await res.json();
 
-    // ATS SCORE
-    document.getElementById("score").innerText = data.score ?? 0;
+    // ✅ FIX 1: correct key
+    document.getElementById("score").innerText =
+      data.overall_score ?? 0;
 
-    // SUGGESTIONS
+    // ✅ Suggestions
     const list = document.getElementById("suggestions");
     list.innerHTML = "";
 
-    (data.missing_keywords || []).forEach(word => {
+    if (!data.missing_keywords || data.missing_keywords.length === 0) {
+      list.innerHTML = "<li>No major missing keywords 🎉</li>";
+    } else {
+      data.missing_keywords.forEach(word => {
         const li = document.createElement("li");
-        li.innerText = word;
+        li.innerText = "Add keyword: " + word;
         list.appendChild(li);
-    });
+      });
+    }
+
+    // ✅ AI suggestions (static for now)
+    document.getElementById("aiSuggestions").innerHTML = `
+      <li>Align skills with job description</li>
+      <li>Add measurable project results</li>
+      <li>Use action verbs like built, optimized</li>
+    `;
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to analyze ATS score");
+  }
 }
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>

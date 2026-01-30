@@ -1,11 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=<device-width>, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <title>ATS Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fa;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .score {
+      font-size: 28px;
+      font-weight: bold;
+      color: #6C63FF;
+    }
+
+    .title {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    ul {
+      padding-left: 18px;
+    }
+  </style>
 </head>
+
 <body>
-    <h1>ATS Analysis Result</h1>
+
+<h1>📊 ATS Field-wise Analysis Dashboard</h1>
+
+<div class="dashboard" id="dashboard"></div>
+
+<script>
+(async function () {
+
+  const stored = sessionStorage.getItem("ats_payload");
+  if (!stored) {
+    alert("No resume data found");
+    return;
+  }
+
+  const payload = JSON.parse(stored);
+  const jd = payload.job_description;
+
+  // 🔹 Split resume into fields
+  const fields = {
+    "Summary": payload.resume.split("SKILLS:")[0],
+    "Skills": payload.resume.split("SKILLS:")[1]?.split("PROJECTS:")[0] || "",
+    "Projects": payload.resume.split("PROJECTS:")[1] || ""
+  };
+
+  const dashboard = document.getElementById("dashboard");
+
+  // 🔹 Overall ATS analysis
+  const overallRes = await fetch("/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const overallData = await overallRes.json();
+
+  createCard("Overall ATS Match", overallData.overall_score, overallData.breakdown);
+
+  // 🔹 Field-wise analysis
+  for (const [fieldName, fieldText] of Object.entries(fields)) {
+    if (!fieldText.trim()) continue;
+
+    const res = await fetch("/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        resume: fieldText,
+        job_description: jd
+      })
+    });
+
+    const data = await res.json();
+    createCard(fieldName + " Match", data.overall_score, null, data.missing_keywords);
+  }
+
+  // 🔹 Card creator
+  function createCard(title, score, breakdown = null, keywords = []) {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="title">${title}</div>
+      <div class="score">${score ?? 0}%</div>
+      <div class="section">
+        <h4>Missing Keywords</h4>
+        <ul>${(keywords || []).map(k => `<li>${k}</li>`).join("") || "<li>None 🎉</li>"}</ul>
+      </div>
+      ${breakdown ? `<canvas height="200"></canvas>` : ""}
+    `;
+
+    dashboard.appendChild(card);
+
+    if (breakdown) {
+      const ctx = card.querySelector("canvas").getContext("2d");
+      new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: ["Skills", "Projects", "Education", "Keywords"],
+          datasets: [{
+            label: "ATS %",
+            data: [
+              breakdown.skills || 0,
+              breakdown.projects || 0,
+              breakdown.education || 0,
+              breakdown.keywords || 0
+            ],
+            fill: true,
+            backgroundColor: "rgba(108,99,255,0.25)",
+            borderColor: "#6C63FF"
+          }]
+        },
+        options: {
+          scales: { r: { min: 0, max: 100 } }
+        }
+      });
+    }
+  }
+
+})();
+</script>
+
 </body>
 </html>
