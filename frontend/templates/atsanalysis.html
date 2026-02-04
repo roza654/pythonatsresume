@@ -45,6 +45,20 @@
     ul {
       padding-left: 18px;
     }
+
+    button {
+      padding: 10px 14px;
+      background: #6C63FF;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #584ee0;
+    }
   </style>
 </head>
 
@@ -66,7 +80,6 @@
   const payload = JSON.parse(stored);
   const jd = payload.job_description;
 
-  // 🔹 Split resume into fields
   const fields = {
     "Summary": payload.resume.split("SKILLS:")[0],
     "Skills": payload.resume.split("SKILLS:")[1]?.split("PROJECTS:")[0] || "",
@@ -75,7 +88,7 @@
 
   const dashboard = document.getElementById("dashboard");
 
-  // 🔹 Overall ATS analysis
+  /* ================= OVERALL ATS ================= */
   const overallRes = await fetch("/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -85,7 +98,7 @@
 
   createCard("Overall ATS Match", overallData.overall_score, overallData.breakdown);
 
-  // 🔹 Field-wise analysis
+  /* ================= FIELD-WISE ATS ================= */
   for (const [fieldName, fieldText] of Object.entries(fields)) {
     if (!fieldText.trim()) continue;
 
@@ -102,7 +115,10 @@
     createCard(fieldName + " Match", data.overall_score, null, data.missing_keywords);
   }
 
-  // 🔹 Card creator
+  /* ================= IMPROVEMENT CARD ================= */
+  createImprovementCard();
+
+  /* ================= CARD FUNCTIONS ================= */
   function createCard(title, score, breakdown = null, keywords = []) {
     const card = document.createElement("div");
     card.className = "card";
@@ -110,10 +126,14 @@
     card.innerHTML = `
       <div class="title">${title}</div>
       <div class="score">${score ?? 0}%</div>
-      <div class="section">
-        <h4>Missing Keywords</h4>
-        <ul>${(keywords || []).map(k => `<li>${k}</li>`).join("") || "<li>None 🎉</li>"}</ul>
-      </div>
+
+      <h4>Missing Keywords</h4>
+      <ul>
+        ${(keywords && keywords.length)
+          ? keywords.map(k => `<li>${k}</li>`).join("")
+          : "<li>None 🎉</li>"}
+      </ul>
+
       ${breakdown ? `<canvas height="200"></canvas>` : ""}
     `;
 
@@ -145,7 +165,64 @@
     }
   }
 
+  /* ================= RESUME IMPROVEMENT ================= */
+  function createImprovementCard() {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="title">🚀 Resume Auto-Improvement</div>
+
+      <button onclick="improveResume()">Generate Suggestions</button>
+
+      <h4>Skill Suggestions</h4>
+      <ul id="skillSuggestions"><li>Click button to generate</li></ul>
+
+      <h4>Improved Resume Bullets</h4>
+      <ul id="improvedBullets"><li>Click button to generate</li></ul>
+    `;
+
+    dashboard.appendChild(card);
+  }
+
 })();
+
+/* ================= CALL IMPROVE API ================= */
+async function improveResume() {
+  const stored = sessionStorage.getItem("ats_payload");
+  if (!stored) {
+    alert("Resume data not found");
+    return;
+  }
+
+  const payload = JSON.parse(stored);
+
+  const res = await fetch("/improve_resume", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  const skillUL = document.getElementById("skillSuggestions");
+  const bulletUL = document.getElementById("improvedBullets");
+
+  skillUL.innerHTML = "";
+  bulletUL.innerHTML = "";
+
+  data.skill_suggestions.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = s;
+    skillUL.appendChild(li);
+  });
+
+  data.improved_bullets.forEach(b => {
+    const li = document.createElement("li");
+    li.textContent = b;
+    bulletUL.appendChild(li);
+  });
+}
 </script>
 
 </body>

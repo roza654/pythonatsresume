@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard | ATS Resume Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Figma-style font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* ===== LAYOUT ===== */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 240px;
+      background: #0f172a;
+      color: #fff;
+      padding: 24px;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: #60a5fa;
+    }
+
+    .menu a {
+      display: block;
+      color: #cbd5f5;
+      text-decoration: none;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .menu a:hover {
+      color: #fff;
+    }
+
+    /* ===== MAIN ===== */
+    .main {
+      flex: 1;
+      padding: 32px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .topbar h2 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .logout {
+      background: #ef4444;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* ===== SCORE CARD ===== */
+    .score-card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .score-text h3 {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .score-text p {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .score {
+      font-size: 46px;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    /* ===== GRID CARDS ===== */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .card h4 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .good {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .improve {
+      color: #f97316;
+      font-weight: 600;
+    }
+
+    /* ===== ACTION BUTTONS ===== */
+    .actions {
+      margin-top: 40px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 14px 24px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .primary {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #0f172a;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">ATS Analyzer</div>
+
+    <div class="menu">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/build-resume">Build Resume</a>
+      <a href="/ats-result">ATS Checker</a>
+      <a href="#">Resume History</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <div class="topbar">
+      <h2>Welcome back 👋</h2>
+      <a href="/logout" class="logout">Logout</a>
+    </div>
+
+    <!-- ATS SCORE -->
+    <div class="score-card">
+      <div class="score-text">
+        <h3>Your ATS Match Score</h3>
+        <p>Based on resume & job description analysis</p>
+      </div>
+      <div class="score">72%</div>
+    </div>
+
+    <!-- ANALYSIS CARDS -->
+    <div class="grid">
+      <div class="card">
+        <h4>Skills Match</h4>
+        <p class="good">Good (68%)</p>
+        <p>Most required skills found</p>
+      </div>
+
+      <div class="card">
+        <h4>Projects</h4>
+        <p class="good">Strong</p>
+        <p>Relevant projects detected</p>
+      </div>
+
+      <div class="card">
+        <h4>Experience</h4>
+        <p class="improve">Needs Improvement</p>
+        <p>Add quantified results</p>
+      </div>
+
+      <div class="card">
+        <h4>Missing Keywords</h4>
+        <p class="improve">Python, SQL, REST</p>
+        <p>Add these to improve score</p>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+      <a href="/build-resume" class="btn primary">Build New Resume</a>
+      <a href="/ats-result" class="btn secondary">Re-Analyze Resume</a>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
